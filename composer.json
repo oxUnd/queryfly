@@ -1,0 +1,21 @@
+{
+    "name": "epsilon/queryfly",
+    "description": "The data provider of laravel",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "xiangshouding",
+            "email": "fansekey@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Epsilon\\Queryfly\\": "src"
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "illuminate/database": "5.0.*"
+    }
+}
