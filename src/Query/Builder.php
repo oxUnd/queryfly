@@ -268,15 +268,7 @@ class Builder extends BaseBuilder
      */
     public function orderBy($column, $direction = 'asc')
     {
-        if (is_string($direction)) {
-            $direction = (strtolower($direction) == 'asc' ? 1 : -1);
-        }
-
-        if ($column == 'natural') {
-            $this->orders['$natural'] = $direction;
-        } else {
-            $this->orders[$column] = $direction;
-        }
+        $this->orders[$column] = strtolower($direction);
 
         return $this;
     }
@@ -586,6 +578,20 @@ class Builder extends BaseBuilder
     protected function compileWhereRaw($where)
     {
         return $where['sql'];
+    }
+
+
+    protected function compileOrders()
+    {
+        $query = '_orderby=';
+
+        $orders = [];
+        foreach ($this->orders as $column => $direction)
+        {
+            $orders [] = "{$column}:{$direction}";
+        }
+
+        return $query .= implode(',', $orders);
     }
 
 
