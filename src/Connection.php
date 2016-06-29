@@ -41,6 +41,26 @@ class Connection extends BaseConnection
         $this->queryGrammar = $this->getDefaultQueryGrammar();
     }
 
+
+    /**
+     * Get a schema builder instance for the connection.
+     *
+     * @return Schema\Builder
+     */
+    public function getSchemaBuilder()
+    {
+        return new Schema\Builder($this);
+    }
+
+
+    public function select($query, $bindings = array()) {
+        $url = $this->getDsn($this->config) . $query;
+
+        $request = new Request('GET', $url);
+
+        return $request->request();
+    }
+
     /**
      * Get the default query grammar instance.
      *
@@ -72,17 +92,6 @@ class Connection extends BaseConnection
         $query = new Query\Builder($this, $this->getPostProcessor());
 
         return $query->from($table);
-    }
-
-
-    /**
-     * Get a schema builder instance for the connection.
-     *
-     * @return Schema\Builder
-     */
-    public function getSchemaBuilder()
-    {
-        return new Schema\Builder($this);
     }
 
     /**

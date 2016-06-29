@@ -15,11 +15,11 @@ class Builder extends BaseBuilder
     protected $selectComponents = array(
         'aggregate',
         'columns',
-        'from',
+        // 'from',
         'joins',
         'wheres',
-        'groups',
-        'havings',
+        // 'groups',
+        // 'havings',
         'orders',
         'limit',
         'offset',
@@ -54,14 +54,32 @@ class Builder extends BaseBuilder
      * @var array
      */
     protected $conversion = [
-        '='  => '=',
-        '!=' => '$ne',
-        '<>' => '$ne',
-        '<'  => '$lt',
-        '<=' => '$lte',
-        '>'  => '$gt',
-        '>=' => '$gte',
+        '='  => 'eq',
+        '!=' => '!eq',
+        '<>' => 'eq',
+        '<'  => 'lt',
+        '<=' => 'lte',
+        '>'  => 'gt',
+        '>=' => 'gte',
+        'not like' => '!like'
     ];
+
+
+    /**
+     * All of the available clause operators.
+     *
+     * @var array
+     */
+    protected $operators = array(
+        '=', '<', '>', '<=', '>=', '<>', '!=',
+        'like', 'not like', 'between'
+        // , 'like binary'
+        // , 'ilike',
+        // '&', '|', '^', '<<', '>>',
+        // 'rlike', 'regexp', 'not regexp',
+        // '~', '~*', '!~', '!~*', 'similar to',
+                // 'not similar to',
+    );
 
     /**
      * Create a new query builder instance.
@@ -74,19 +92,6 @@ class Builder extends BaseBuilder
         $this->grammar = new Grammar;
         $this->connection = $connection;
         $this->processor = $processor;
-    }
-
-    /**
-     * Set the projections.
-     *
-     * @param  array  $columns
-     * @return $this
-     */
-    public function project($columns)
-    {
-        $this->projections = is_array($columns) ? $columns : func_get_args();
-
-        return $this;
     }
 
     /**
@@ -124,7 +129,7 @@ class Builder extends BaseBuilder
      */
     public function find($id, $columns = [])
     {
-        return $this->where('_id', '=', $this->convertKey($id))->first($columns);
+        return $this->where('id', '=', urlencode($id))->first($columns);
     }
 
     /**
@@ -146,31 +151,40 @@ class Builder extends BaseBuilder
      */
     public function getFresh($columns = [])
     {
-        var_dump('1');
         // If no columns have been specified for the select statement, we will set them
         // here to either the passed columns, or the standard default of retrieving
         // all of the columns on the table using the "wildcard" column character.
-        if (is_null($this->columns)) {
+        if (is_null($this->columns))
+        {
             $this->columns = $columns;
         }
 
         // Drop all columns if * is present, MongoDB does not work this way.
-        if (in_array('*', $this->columns)) {
+        if (in_array('*', $this->columns))
+        {
             $this->columns = [];
         }
 
-        $select = array();
+        $query = array();
 
-        foreach ($this->selectComponents as $component) {
-            $select = array_add($select, $component, $this->$component);
+        foreach ($this->selectComponents as $component)
+        {
+            if (! is_null($this->$component))
+            {
+                $method = 'compile' . ucfirst($component);
+
+                $query[$component] = $this->$method();
+            }
         }
 
-        var_dump($select);
+        $url = $this->buildUrl('query', $query);
 
-        // Compile wheres
-        $wheres = $this->compileWheres();
+        return $this->connection->select($url);
+    }
 
-        return [];
+    public function buildUrl($method, $query)
+    {
+        return "/{$this->from}/{$method}?{$this->concatenate($query)}";
     }
 
     /**
@@ -479,46 +493,20 @@ class Builder extends BaseBuilder
     {
     }
 
-    /**
-     * Convert a key to ObjectID if needed.
-     *
-     * @param  mixed $id
-     * @return mixed
-     */
-    public function convertKey($id)
-    {
-        if (is_string($id) and strlen($id) === 24 and ctype_xdigit($id)) {
-            return new ObjectID($id);
-        }
 
-        return $id;
+    public function compileAggregate()
+    {
+        $aggregate = $this->aggregate;
     }
 
-    /**
-     * Add a basic where clause to the query.
-     *
-     * @param  string  $column
-     * @param  string  $operator
-     * @param  mixed   $value
-     * @param  string  $boolean
-     * @return \Illuminate\Database\Query\Builder|static
-     *
-     * @throws \InvalidArgumentException
-     */
-    public function where($column, $operator = null, $value = null, $boolean = 'and')
+    public function compileColumns()
     {
-        $params = func_get_args();
-
-        // Remove the leading $ from operators.
-        if (func_num_args() == 3) {
-            $operator = &$params[1];
-
-            if (starts_with($operator, '$')) {
-                $operator = substr($operator, 1);
-            }
+        if (! $this->columns)
+        {
+            return '';
         }
 
-        return call_user_func_array('parent::where', $params);
+        return 'field=' . implode(',', $this->columns);
     }
 
     /**
@@ -531,83 +519,115 @@ class Builder extends BaseBuilder
         // The wheres to compile.
         $wheres = $this->wheres ?: [];
 
-        return [];
+        $query = [];
+
+        foreach ($wheres as $where)
+        {
+            $method = 'compileWhere' . ucfirst($where['type']);
+
+            $where['value'] = urlencode($where['value']); // urlencode
+
+            $where['column'] = $this->removeTableFromColumn($where['column']);
+
+            $query[] = ($where['boolean'] == 'and' ? '' : '!') . $this->$method($where);
+        }
+
+        return implode('&', $query);
     }
 
     protected function compileWhereBasic($where)
     {
-        return '';
+        $operator = $this->convertOperator($where['operator']);
+
+        return $where['column'] . '=' . $operator . ':' . $where['value'];
     }
 
     protected function compileWhereNested($where)
     {
-        extract($where);
-
         return $query->compileWheres();
     }
 
     protected function compileWhereIn($where)
     {
-        extract($where);
-
-        return [$column => ['$in' => array_values($values)]];
+        return $where['column'] . '=in:' . $where['value'];
     }
 
     protected function compileWhereNotIn($where)
     {
-        extract($where);
 
-        return [$column => ['$nin' => array_values($values)]];
+        return $where['column'] . '=nin:' . $where['value'];
     }
 
     protected function compileWhereNull($where)
     {
-        $where['operator'] = '=';
-        $where['value'] = null;
 
-        return $this->compileWhereBasic($where);
+        return $where['column'] . '=null';
     }
 
     protected function compileWhereNotNull($where)
     {
-        $where['operator'] = '!=';
-        $where['value'] = null;
-
-        return $this->compileWhereBasic($where);
+        return $where['column'] . '=!null';
     }
 
     protected function compileWhereBetween($where)
     {
-        extract($where);
+        $value = $where['value'];
 
-        if ($not) {
-            return [
-                '$or' => [
-                    [
-                        $column => [
-                            '$lte' => $values[0],
-                        ],
-                    ],
-                    [
-                        $column => [
-                            '$gte' => $values[1],
-                        ],
-                    ],
-                ],
-            ];
-        } else {
-            return [
-                $column => [
-                    '$gte' => $values[0],
-                    '$lte' => $values[1],
-                ],
-            ];
+        if ($where['not'])
+        {
+            return $where['column'] . '=!between:' . $value[0] . ',' . $value[1];
+        }
+        else
+        {
+            return $where['column'] . '=between:' . $value[0] . ',' . $value[1];
         }
     }
 
     protected function compileWhereRaw($where)
     {
         return $where['sql'];
+    }
+
+
+    protected function compileLimit()
+    {
+        return '_limit=' . $this->limit;
+    }
+
+
+    /**
+     * remove '{$table}.' from column
+     *
+     * @param  mixed $id
+     * @return mixed
+     */
+    public function removeTableFromColumn($column)
+    {
+        return str_replace($this->from . '.', '', $column);
+    }
+
+    public function convertOperator($operator)
+    {
+        if (isset($this->conversion[$operator]))
+        {
+            return $this->conversion[$operator];
+        }
+
+        return $operator;
+    }
+
+    /**
+     * Concatenate an array of segments, removing empties.
+     *
+     * @param  array   $segments
+     * @return string
+     */
+    protected function concatenate($segments)
+    {
+        return implode('&', array_filter($segments, function($value)
+        {
+            return (string) $value !== '';
+        }));
     }
 
     /**
