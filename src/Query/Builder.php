@@ -555,7 +555,7 @@ class Builder extends BaseBuilder
     protected function compileWhereNotIn($where)
     {
 
-        return $where['column'] . '=nin:' . $where['value'];
+        return $where['column'] . '=!in:' . $where['value'];
     }
 
     protected function compileWhereNull($where)
