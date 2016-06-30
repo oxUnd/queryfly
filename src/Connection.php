@@ -53,12 +53,22 @@ class Connection extends BaseConnection
     }
 
 
-    public function select($query, $bindings = array()) {
+    public function select($query, $bindings = array())
+    {
         $url = $this->getDsn($this->config) . $query;
 
         $request = new Request('GET', $url);
 
-        return [$request->request()];
+        return $request->request();
+    }
+
+    public function insert($query, $bindings = array())
+    {
+        $url = $this->getDsn($this->config) . $query;
+
+        $request = new Request('POST', $url, $bindings);
+
+        return $request->request();
     }
 
     /**

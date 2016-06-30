@@ -336,6 +336,7 @@ class Builder extends BaseBuilder
      */
     public function insert(array $values)
     {
+        dd($values);
     }
 
     /**
@@ -347,6 +348,15 @@ class Builder extends BaseBuilder
      */
     public function insertGetId(array $values, $sequence = null)
     {
+        $url = $this->buildUrl('create', []);
+
+        $result = $this->connection->insert($url, $values);
+
+        $result = (array) $result[0];
+
+        $id = $sequence?: 'id';
+
+        return isset($result[$id]) ? (int) $result[$id] : '0';
     }
 
     /**
@@ -358,6 +368,7 @@ class Builder extends BaseBuilder
      */
     public function update(array $values, array $options = [])
     {
+
     }
 
     /**

@@ -17,7 +17,7 @@ class Request
 
     public function __construct($method, $url, $data = array(), $service = '')
     {
-        $this->method = $method;
+        $this->method = strtoupper($method);
         $this->url = $url;
         $this->service = $service;
         $this->data = $data;
@@ -42,6 +42,10 @@ class Request
             if (is_string($result))
             {
                 $return = json_decode($result, true);
+                if (is_null($return))
+                {
+                    $return = [];
+                }
             }
 
             return $return;
@@ -84,6 +88,12 @@ class Request
             // set URL and other appropriate options
             curl_setopt($ch, CURLOPT_URL, $this->url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+            if ($this->method == 'POST')
+            {
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->data);
+            }
 
             // grab URL and pass it to the browser
             $return = curl_exec($ch);
