@@ -12,184 +12,184 @@ use Closure;
  */
 class Query {
 
-	protected $operators = [];
+    protected $operators = [];
 
-	protected $convertion = [
-		'eq' => '=',
-		'!eq' => '!=',
-		'lt' => '<',
-		'lte' => '<=',
-		'gt' => '>',
-		'gte' => '>=',
-		'like' => 'like',
-		'!like' => 'not like',
-		'between' => 'between',
-		'in' => 'in',
-		'!in' => 'not in'
-	];
+    protected $convertion = [
+        'eq' => '=',
+        '!eq' => '!=',
+        'lt' => '<',
+        'lte' => '<=',
+        'gt' => '>',
+        'gte' => '>=',
+        'like' => 'like',
+        '!like' => 'not like',
+        'between' => 'between',
+        'in' => 'in',
+        '!in' => 'not in'
+    ];
 
-	protected $functions = [
-		'limit',
-		'offset',
-		'where'
-	];
+    protected $functions = [
+        'limit',
+        'offset',
+        'where'
+    ];
 
-	protected $query;
+    protected $query;
 
-	protected $statement = [];
+    protected $statement = [];
 
-	public function __construct($query)
-	{
-		$this->query = (array) $query;
-		$this->operators = array_keys($this->convertion);
-	}
+    public function __construct($query)
+    {
+        $this->query = (array) $query;
+        $this->operators = array_keys($this->convertion);
+    }
 
-	/**
-	 * Parse Query to Model method
-	 *
-	 * @return \Epsilon\Queryfly\Parser\Query
-	 */
-	public function parse()
-	{
-		$not = false;
+    /**
+     * Parse Query to Model method
+     *
+     * @return \Epsilon\Queryfly\Parser\Query
+     */
+    public function parse()
+    {
+        $not = false;
 
-		foreach ($this->query as $field => $condition)
-		{
+        foreach ($this->query as $field => $condition)
+        {
 
-			if (strpos($field, '!') === 0)
-			{
-				$not = true;
-				$field = substr($field, 1);
-			}
+            if (strpos($field, '!') === 0)
+            {
+                $not = true;
+                $field = substr($field, 1);
+            }
 
-			if (preg_match('/^_[^_]+/', $field, $match))
-			{
-				$field = strtolower($field);
+            if (preg_match('/^_[^_]+/', $field, $match))
+            {
+                $field = strtolower($field);
 
-				$field = substr($field, 1); // remove '_'
+                $field = substr($field, 1); // remove '_'
 
-				if ($field === 'orderby')
-				{
-					array_map(function ($raw) {
-						
-						list($field, $direction) = explode(':', $raw);
-						$this->parseOrderBy($field, $direction);
-					}, explode(',', $condition));
-				}
-				else if ($field === 'field')
-				{
-					$this->statement['get'] = explode(',', $condition);
-				}
-				else
-				{
-					$this->parseFunction($field, $condition);
-				}
-			}
-			else
-			{
-				list($op, $value) = explode(':', $condition);
-				$this->parseWhere($field, $op, $value);
-			}
-		}
+                if ($field === 'orderby')
+                {
+                    array_map(function ($raw) {
+                        
+                        list($field, $direction) = explode(':', $raw);
+                        $this->parseOrderBy($field, $direction);
+                    }, explode(',', $condition));
+                }
+                else if ($field === 'field')
+                {
+                    $this->statement['get'] = explode(',', $condition);
+                }
+                else
+                {
+                    $this->parseFunction($field, $condition);
+                }
+            }
+            else
+            {
+                list($op, $value) = explode(':', $condition);
+                $this->parseWhere($field, $op, $value);
+            }
+        }
 
-		return $this;
-	}
+        return $this;
+    }
 
-	public function parseFunction($function, $value)
-	{
-		if (!in_array($function, $this->functions)) return;
+    public function parseFunction($function, $value)
+    {
+        if (!in_array($function, $this->functions)) return;
 
-		$this->statement[$function] = $value;
-	}
+        $this->statement[$function] = $value;
+    }
 
-	public function parseWhere($field, $op, $value)
-	{
-		if (!in_array($op, $this->operators)) return;
+    public function parseWhere($field, $op, $value)
+    {
+        if (!in_array($op, $this->operators)) return;
 
-		if ($op == 'in' || $op == '!in')
-		{
-			$value = explode(',', $value);
-		}
+        if ($op == 'in' || $op == '!in')
+        {
+            $value = explode(',', $value);
+        }
 
-		$op = $this->convertOperator($op);
+        $op = $this->convertOperator($op);
 
-		if (!isset($this->statement['where']))
-		{
-			$this->statement['where'] = [];
-		}
+        if (!isset($this->statement['where']))
+        {
+            $this->statement['where'] = [];
+        }
 
-		array_push($this->statement['where'], [$field, $op, $value]);
-	}
+        array_push($this->statement['where'], [$field, $op, $value]);
+    }
 
-	public function parseOrderBy($field, $derection)
-	{
-		if (!isset($this->statement['orderBy']))
-		{
-			$this->statement['orderBy'] = [];
-		}
+    public function parseOrderBy($field, $derection)
+    {
+        if (!isset($this->statement['orderBy']))
+        {
+            $this->statement['orderBy'] = [];
+        }
 
-		array_push($this->statement['orderBy'], [$field, $derection]);
-	}
+        array_push($this->statement['orderBy'], [$field, $derection]);
+    }
 
 
-	/**
-	 * hook Query statement to Model
-	 * 
-	 * @param mixed $model some Model instance
-	 * @param Closure $callback
-	 * @return mixed
-	 */
-	public function hook($model, Closure $callback = null)
-	{
-		// parse given  url query language.
-		$this->parse();
+    /**
+     * hook Query statement to Model
+     * 
+     * @param mixed $model some Model instance
+     * @param Closure $callback
+     * @return mixed
+     */
+    public function hook($model, Closure $callback = null)
+    {
+        // parse given  url query language.
+        $this->parse();
 
-		foreach ($this->statement as $function => $paramer)
-		{
-			if ($function === 'get') continue;
+        foreach ($this->statement as $function => $paramer)
+        {
+            if ($function === 'get') continue;
 
-			foreach ((array) $paramer as $args)
-			{
-				$model = call_user_func_array(
-					array($model, $function),
-					(array) $args
-				);
-			}
+            foreach ((array) $paramer as $args)
+            {
+                $model = call_user_func_array(
+                    array($model, $function),
+                    (array) $args
+                );
+            }
 
-		}
+        }
 
-		if ($callback)
-		{
-			return $callback($this->getSelect(), $model);			
-		}
+        if ($callback)
+        {
+            return $callback($this->getSelect(), $model);           
+        }
 
-		return $model;
-	}
+        return $model;
+    }
 
-	/**
-	 * Get need field.
-	 * 
-	 * @return array
-	 */
-	public function getSelect()
-	{
-		return isset($this->statement['get']) ? $this->statement['get'] : ['*'];
-	}
+    /**
+     * Get need field.
+     * 
+     * @return array
+     */
+    public function getSelect()
+    {
+        return isset($this->statement['get']) ? $this->statement['get'] : ['*'];
+    }
 
-	/**
-	 * convert operator to Model's operator.
-	 *
-	 * @param string $op
-	 * @return string
-	 */
-	protected function convertOperator($op)
-	{
+    /**
+     * convert operator to Model's operator.
+     *
+     * @param string $op
+     * @return string
+     */
+    protected function convertOperator($op)
+    {
 
-		if (isset($this->convertion[$op]))
-		{
-			return $this->convertion[$op];
-		}
+        if (isset($this->convertion[$op]))
+        {
+            return $this->convertion[$op];
+        }
 
-		return $op;
-	}
+        return $op;
+    }
 }
