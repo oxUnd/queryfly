@@ -16,14 +16,14 @@ class Builder extends BaseBuilder
         'aggregate',
         'columns',
         // 'from',
-        'joins',
+        // 'joins',
         'wheres',
         // 'groups',
         // 'havings',
         'orders',
         'limit',
         'offset',
-        'unions',
+        // 'unions',
         'lock',
     );
 
@@ -167,24 +167,44 @@ class Builder extends BaseBuilder
 
         $query = array();
 
+        $isAgg = false;
+
+        $action = 'query';
+
         foreach ($this->selectComponents as $component)
         {
             if (! is_null($this->$component))
             {
                 $method = 'compile' . ucfirst($component);
+                
+                $return = $this->$method();
 
-                $query[$component] = $this->$method();
+                if ($component === 'aggregate')
+                {
+                    $isAgg = true;
+                    $action = $return['action'];
+                    $query['aggregate.field'] = $return['field'];
+                }
+                else
+                {
+                    $query[$component] = $this->$method();
+                }
             }
         }
 
-        $url = $this->buildUrl('query', $query);
+        $url = $this->buildUrl($action, $query);
 
         return $this->connection->select($url);
     }
 
     public function buildUrl($method, $query)
     {
-        return "/{$this->from}/{$method}?{$this->concatenate($query)}";
+
+        $parameter = $this->concatenate($query);
+
+        if ($parameter != '') $parameter = '?' . $parameter;
+
+        return "/{$this->from}/{$method}{$parameter}";
     }
 
     /**
@@ -216,7 +236,10 @@ class Builder extends BaseBuilder
      */
     public function aggregate($function, $columns = [])
     {
-        $this->aggregate = compact('function', 'columns');
+        $this->aggregate = [
+            'function' => $function,
+            'columns' => $columns
+        ];
 
         $results = $this->get($columns);
 
@@ -390,6 +413,12 @@ class Builder extends BaseBuilder
      */
     public function delete($id = null)
     {
+        if (! is_null($id)) $this->where('id', '=', $id);
+        
+        $query['where'] = $this->compileWheres();
+
+        $url = $this->buildUrl('delete', $query);
+        dd($url);
     }
 
     /**
@@ -489,6 +518,11 @@ class Builder extends BaseBuilder
     public function compileAggregate()
     {
         $aggregate = $this->aggregate;
+
+        return [
+            'action' => $aggregate['function'],
+            'field'  => in_array('*', $aggregate['columns']) ? '' : 'field=' . implode(',', (array) $aggregate['columns'])
+        ];
     }
 
     public function compileColumns()
@@ -517,8 +551,6 @@ class Builder extends BaseBuilder
         {
             $method = 'compileWhere' . ucfirst($where['type']);
 
-            $where['value'] = urlencode($where['value']); // urlencode
-
             $where['column'] = $this->removeTableFromColumn($where['column']);
 
             $query[] = ($where['boolean'] == 'and' ? '' : '!') . $this->$method($where);
@@ -531,7 +563,7 @@ class Builder extends BaseBuilder
     {
         $operator = $this->convertOperator($where['operator']);
 
-        return $where['column'] . '=' . $operator . ':' . $where['value'];
+        return $where['column'] . '=' . $operator . ':' . $this->escapeValue($where['value']);
     }
 
     protected function compileWhereNested($where)
@@ -539,31 +571,36 @@ class Builder extends BaseBuilder
         return $query->compileWheres();
     }
 
-    protected function compileWhereIn($where)
+    protected function compileWhereIn($where, $not = false)
     {
-        return $where['column'] . '=in:' . $where['value'];
+        return $where['column'] . '=' . ($not ? '!' : '') . 'in:' . implode(',', array_map(function ($value)
+        {
+            return $this->escapeValue($value);
+        }, $where['values']));
     }
 
     protected function compileWhereNotIn($where)
     {
-
-        return $where['column'] . '=!in:' . $where['value'];
+        return $this->compileWhereIn($where, true);
     }
 
     protected function compileWhereNull($where)
     {
 
-        return $where['column'] . '=null';
+        return $where['column'] . '=null:';
     }
 
     protected function compileWhereNotNull($where)
     {
-        return $where['column'] . '=!null';
+        return $where['column'] . '=!null:';
     }
 
     protected function compileWhereBetween($where)
     {
-        $value = $where['value'];
+        $value = array_map((array) $where['value'], function ($val)
+        {
+            return $this->escapeValue($val);
+        });
 
         if ($where['not'])
         {
@@ -600,6 +637,22 @@ class Builder extends BaseBuilder
         return '_limit=' . $this->limit;
     }
 
+    protected function compileOffset()
+    {
+        return '_offset=' . $this->offset;
+    }
+
+    // @TODO
+    protected function compileLock()
+    {
+        return is_string($this->lock)?:'';
+    }
+
+
+    protected function escapeValue($value)
+    {
+        return urlencode($value);
+    }
 
     /**
      * remove '{$table}.' from column
@@ -612,6 +665,12 @@ class Builder extends BaseBuilder
         return str_replace($this->from . '.', '', $column);
     }
 
+    /**
+     * convert operator to Queryfly.
+     * 
+     * @param string $operator
+     * @return string
+     */
     public function convertOperator($operator)
     {
         if (isset($this->conversion[$operator]))

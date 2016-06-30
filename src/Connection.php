@@ -58,7 +58,7 @@ class Connection extends BaseConnection
 
         $request = new Request('GET', $url);
 
-        return $request->request();
+        return [$request->request()];
     }
 
     /**
