@@ -133,13 +133,13 @@ class Query {
 
 
     /**
-     * hook Query statement to Model
+     * bind Query statement to Model
      * 
      * @param mixed $model some Model instance
      * @param Closure $callback
      * @return mixed
      */
-    public function hook($model, Closure $callback = null)
+    public function bindToModel($model, Closure $callback = null)
     {
         // parse given  url query language.
         $this->parse();
