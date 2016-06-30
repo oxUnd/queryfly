@@ -540,7 +540,7 @@ class Builder extends BaseBuilder
 
         return [
             'action' => $aggregate['function'],
-            'field'  => in_array('*', $aggregate['columns']) ? '' : 'field=' . implode(',', (array) $aggregate['columns'])
+            'field'  => in_array('*', $aggregate['columns']) ? '' : '_field=' . implode(',', (array) $aggregate['columns'])
         ];
     }
 
@@ -551,7 +551,7 @@ class Builder extends BaseBuilder
             return '';
         }
 
-        return 'field=' . implode(',', $this->columns);
+        return '_field=' . implode(',', $this->columns);
     }
 
     /**
