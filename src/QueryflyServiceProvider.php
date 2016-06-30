@@ -30,7 +30,7 @@ class QueryflyServiceProvider extends ServiceProvider {
         {
             $db->extend('queryfly', function ($config)
             {
-                return new Connection($config);
+                return new Connection($config, $this->app['log']);
             });
         });
     }

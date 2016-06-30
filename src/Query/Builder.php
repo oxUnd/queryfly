@@ -336,7 +336,11 @@ class Builder extends BaseBuilder
      */
     public function insert(array $values)
     {
-        dd($values);
+        $url = $this->buildUrl('create', []);
+
+        $result = $this->connection->insert($url, $values);
+
+        return isset($result['id']) ?: false;
     }
 
     /**
@@ -352,11 +356,9 @@ class Builder extends BaseBuilder
 
         $result = $this->connection->insert($url, $values);
 
-        $result = (array) $result[0];
+        $id = $result[$sequence ?: 'id'];
 
-        $id = $sequence?: 'id';
-
-        return isset($result[$id]) ? (int) $result[$id] : '0';
+        return is_numeric($id) ? (int)$id : $id;
     }
 
     /**
@@ -368,7 +370,13 @@ class Builder extends BaseBuilder
      */
     public function update(array $values, array $options = [])
     {
+        $query['wheres'] = $this->compileWheres();
 
+        $url = $this->buildUrl('update', $query);
+
+        $result = $this->connection->update($url, $values);
+
+        return $result['id'];
     }
 
     /**

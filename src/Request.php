@@ -5,6 +5,10 @@ use Exception;
 
 class Request
 {
+    const STATUS_OK = 0;
+    
+    const STATUS_FAILED = 10;
+
     protected $useRal = false;
 
     protected $url;
@@ -33,6 +37,11 @@ class Request
         return $this->requestWithCurl($this->ok(), $this->failed());
     }
 
+    /**
+     * callback function, if HTTP request success.
+     * 
+     * return Closure
+     */
     public function ok()
     {
         return function ($result)
@@ -41,10 +50,14 @@ class Request
 
             if (is_string($result))
             {
-                $return = json_decode($result, true);
+                $result = json_decode($result, true);
                 if (is_null($return))
                 {
-                    $return = [];
+                    $return = $this->buildReturn([], self::STATUS_FAILED, 'json paser failed: ' . json_last_error());
+                }
+                else
+                {
+                    $return = $this->buildReturn($result, self::STATUS_OK);
                 }
             }
 
@@ -52,14 +65,43 @@ class Request
         };
     }
 
+    /**
+     * callback function, if HTTP request failed.
+     * 
+     * return Closure
+     */
     public function failed()
     {
         return function (Exception $e)
         {
-            return [];
+
+            return $this->buildReturn([], self::STATUS_FAILED, $e);
         };
     }
 
+    /**
+     * normolize HTTP request result.
+     * 
+     * @param array $data  
+     * @param int $status
+     * @param string $message
+     */
+    public function buildReturn($data, $status, $message = '')
+    {
+        return [
+            'data' => $data,
+            'status' => $status,
+            'error_message' => $message, 
+        ];
+    }
+
+    /**
+     * request remote resource with RAL.
+     *
+     * @param \Closure $ok
+     * @param \Closure $failed
+     * @return array
+     */
     protected function requestWithRal(Closure $ok, Closure $failed)
     {
         try
@@ -74,10 +116,17 @@ class Request
         } 
         catch (Exception $e)
         {
-
+            return $failed($e);
         }
     }
 
+    /**
+     * request remote resource with cURL
+     *
+     * @param Closure $ok
+     * @param Closure $failed
+     * @return array
+     */
     protected function requestWithCurl(Closure $ok, Closure $failed)
     {
 
@@ -98,6 +147,8 @@ class Request
             // grab URL and pass it to the browser
             $return = curl_exec($ch);
 
+            $curlError = curl_error($ch);
+
             // close cURL resource, and free up system resources
             curl_close($ch);
 
@@ -105,11 +156,11 @@ class Request
                 return $ok($return);
             }
 
-            return [];
+            return $failed(new Exception($curlError));
         }
         catch(Exception $e)
         {
-            return [];
+            return $failed($e);
         }
     }
 }

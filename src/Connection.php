@@ -1,31 +1,28 @@
 <?php namespace Epsilon\Queryfly;
 
+use Exception;
+use Illuminate\Contracts\Logging\Log as Logger;
 use Illuminate\Database\Connection as BaseConnection;
 
 class Connection extends BaseConnection
 {
     /**
-     * The MongoDB database handler.
+     * The log handle
      *
-     * @var \MongoDB\Database
+     * @var \Illuminate\Contracts\Logging\Log
      */
-    protected $db;
-
-    /**
-     * The MongoDB connection handler.
-     *
-     * @var \MongoDB\Client
-     */
-    protected $connection;
+    protected $log;
 
     /**
      * Create a new database connection instance.
      *
      * @param  array   $config
      */
-    public function __construct(array $config)
+    public function __construct(array $config, Logger $log)
     {
         $this->config = $config;
+        
+        $this->log = $log;
         
         $this->useDefaultQueryGrammar();
         $this->useDefaultPostProcessor();
@@ -53,22 +50,55 @@ class Connection extends BaseConnection
     }
 
 
+    /**
+     * query remote resource.
+     *
+     * @param \Epsilon\Queryfly\Query\Builder
+     * @param array $bindings
+     */
     public function select($query, $bindings = array())
     {
         $url = $this->getDsn($this->config) . $query;
 
         $request = new Request('GET', $url);
 
-        return $request->request();
+        $result = $request->request();
+
+        if ($result['status'] == Request::STATUS_OK)
+        {
+            return $result['data'];
+        }
+
+        throw new Exception($result['error_message']);
     }
 
+    /**
+     * insert data to remote database.
+     *
+     */
     public function insert($query, $bindings = array())
     {
         $url = $this->getDsn($this->config) . $query;
 
         $request = new Request('POST', $url, $bindings);
 
-        return $request->request();
+        $result = $request->request();
+
+        if ($result['status'] == Request::STATUS_OK)
+        {
+            return $result['data'];
+        }
+
+        throw new Exception($result['error_message']);
+    }
+
+    /**
+     * update
+     */
+
+    public function update($query, $bindings = array())
+    {
+        return $this->insert($query, $bindings);
     }
 
     /**
@@ -123,7 +153,7 @@ class Connection extends BaseConnection
      */
     public function disconnect()
     {
-        // unset($this->connection);
+        
     }
 
     /**
