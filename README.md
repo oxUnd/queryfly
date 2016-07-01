@@ -70,4 +70,48 @@ http://127.0.0.1:8080/api/article/foos/query?_field=id,name&name=like:foo
 
 ### server
 
-## other
+```
+http://127.0.0.1:8080/api/article/foos/query?_field=id,name&name=like:foo
+|       host         |   |       |    |        query_string             |
+                       |     |     |
+                     prefix  |     $M 
+                           system
+```
+
+- system sub system
+- $M meybe a ORM model or data repository.
+- query_string query paramaters
+
+Queryfly support a method, easier to use.
+
+```php
+<?php
+
+...
+use Epsilon\Queryfly\Parser\Query;
+...
+
+class Controler extends BaseController
+{
+    public function query(Request $request)
+    {
+        $queryParser = new Query($request->all());
+
+        $model = new Foooo(); // suppose model name is Foooo
+
+        $all = $queryParser->bindToModel($model, function ($select, $model)
+        {
+            return $model->get($select);
+        });
+
+        $all->each(function ($one)
+        {
+            echo $one->name . PHP_EOL;
+        });
+    }
+}
+```
+
+now only `bindToModel`.
+
+## document
