@@ -106,19 +106,30 @@ class Query {
     {
         if (!in_array($op, $this->operators)) return;
 
-        if ($op == 'in' || $op == '!in')
+        $values = $value;
+        
+        if (! is_array($value))
         {
-            $value = explode(',', $value);
+            $values = [$value];
         }
 
-        $op = $this->convertOperator($op);
-
-        if (!isset($this->statement['where']))
+        foreach ($values as $value)
         {
-            $this->statement['where'] = [];
+            if ($op == 'in' || $op == '!in')
+            {
+                $value = explode(',', $value);
+            }
+
+            $op = $this->convertOperator($op);
+
+            if (!isset($this->statement['where']))
+            {
+                $this->statement['where'] = [];
+            }
+
+            array_push($this->statement['where'], [$field, $op, $value]);    
         }
 
-        array_push($this->statement['where'], [$field, $op, $value]);
     }
 
     public function parseOrderBy($field, $derection)

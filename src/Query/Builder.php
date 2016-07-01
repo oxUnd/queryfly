@@ -441,14 +441,14 @@ class Builder extends BaseBuilder
     }
 
     /**
-     * Set the collection which the query is targeting.
+     * Set the table which the query is targeting.
      *
-     * @param  string  $collection
+     * @param  string  $table
      * @return Builder
      */
-    public function from($collection)
+    public function from($table)
     {
-        return parent::from($collection);
+        return parent::from($table);
     }
 
     /**
@@ -582,7 +582,7 @@ class Builder extends BaseBuilder
     {
         $operator = $this->convertOperator($where['operator']);
 
-        return $where['column'] . '=' . $operator . ':' . $this->escapeValue($where['value']);
+        return $where['column'] . '[]=' . $operator . ':' . $this->escapeValue($where['value']);
     }
 
     protected function compileWhereNested($where)
@@ -592,7 +592,7 @@ class Builder extends BaseBuilder
 
     protected function compileWhereIn($where, $not = false)
     {
-        return $where['column'] . '=' . ($not ? '!' : '') . 'in:' . implode(',', array_map(function ($value)
+        return $where['column'] . '[]=' . ($not ? '!' : '') . 'in:' . implode(',', array_map(function ($value)
         {
             return $this->escapeValue($value);
         }, $where['values']));
@@ -605,13 +605,12 @@ class Builder extends BaseBuilder
 
     protected function compileWhereNull($where)
     {
-
-        return $where['column'] . '=null:';
+        return $where['column'] . '[]=eq:null';
     }
 
     protected function compileWhereNotNull($where)
     {
-        return $where['column'] . '=!null:';
+        return $where['column'] . '[]=!eq:null';
     }
 
     protected function compileWhereBetween($where)
@@ -623,11 +622,11 @@ class Builder extends BaseBuilder
 
         if ($where['not'])
         {
-            return $where['column'] . '=!between:' . $value[0] . ',' . $value[1];
+            return $where['column'] . '[]=!between:' . $value[0] . ',' . $value[1];
         }
         else
         {
-            return $where['column'] . '=between:' . $value[0] . ',' . $value[1];
+            return $where['column'] . '[]=between:' . $value[0] . ',' . $value[1];
         }
     }
 
