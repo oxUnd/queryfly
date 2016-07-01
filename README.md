@@ -44,7 +44,6 @@ it's `connect` config to `ROOT/config/database.php`
 'connections' => [
     // ...
     'remote_user' => [
-        'driver' => 'queryfly',
         'dsn' => null,
         'prefix' => null,
         'driver' => 'queryfly',
