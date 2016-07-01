@@ -56,18 +56,19 @@ class Request
     {
         return function ($result)
         {
-            $return = [];
+            $return = $this->buildReturn($result, self::STATUS_FAILED, 'not defined error.');
 
             if (is_string($result))
             {
-                $result = json_decode($result, true);
-                if (is_null($result))
+                $arr = json_decode($result, true);
+                
+                if (is_null($arr))
                 {
-                    $return = $this->buildReturn([], self::STATUS_FAILED, 'json parse failed: ' . json_last_error());
+                    $return = $this->buildReturn([], self::STATUS_FAILED, 'json parse failed: ' . json_last_error() . '; content [' . $result . ']');
                 }
                 else
                 {
-                    $return = $this->buildReturn($result, self::STATUS_OK);
+                    $return = $this->buildReturn($arr, self::STATUS_OK);
                 }
             }
 
