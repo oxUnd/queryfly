@@ -63,7 +63,7 @@ class Request
                 $result = json_decode($result, true);
                 if (is_null($result))
                 {
-                    $return = $this->buildReturn([], self::STATUS_FAILED, 'json paser failed: ' . json_last_error());
+                    $return = $this->buildReturn([], self::STATUS_FAILED, 'json parse failed: ' . json_last_error());
                 }
                 else
                 {
