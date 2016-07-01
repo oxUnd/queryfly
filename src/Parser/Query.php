@@ -31,7 +31,10 @@ class Query {
     protected $functions = [
         'limit',
         'offset',
-        'where'
+        'where',
+        'offset',
+        'notnull',
+        'null'
     ];
 
     protected $query;
@@ -53,7 +56,7 @@ class Query {
     {
         $not = false;
 
-        foreach ($this->query as $field => $condition)
+        foreach ($this->query as $field => $statement)
         {
 
             if (strpos($field, '!') === 0)
@@ -70,24 +73,20 @@ class Query {
 
                 if ($field === 'orderby')
                 {
-                    array_map(function ($raw) {
-                        
-                        list($field, $direction) = explode(':', $raw);
-                        $this->parseOrderBy($field, $direction);
-                    }, explode(',', $condition));
+                	$this->parseFunctionOrderBy($statement);
                 }
                 else if ($field === 'field')
                 {
-                    $this->statement['get'] = explode(',', $condition);
+                    $this->statement['get'] = explode(',', $statement);
                 }
                 else
                 {
-                    $this->parseFunction($field, $condition);
+                    $this->parseFunction($field, $statement);
                 }
             }
             else
             {
-                $this->parseWhere($field, $condition);
+                $this->parseWhere($field, $statement);
             }
         }
 
@@ -101,19 +100,24 @@ class Query {
         $this->statement[$function] = $value;
     }
 
-    public function parseWhere($field, $condition)
+    /**
+     * parse where from Query string.
+     *
+     * @param string $field
+     * @param array|string $statement
+     */
+    public function parseWhere($field, $statement)
     {
-    	if (! is_array($condition))
+    	if (! is_array($statement))
     	{
-    		$condition = [$condition];
+    		$statement = [$statement];
     	}
 
-
-        foreach ($condition as $one)
+        foreach ($statement as $one)
         {
-        	list($op, $value) = explode(':', $one);
+        	list($op, $value) = $this->parseWhereStatement($one);
 
-        	if (!in_array($op, $this->operators)) continue;
+        	if (!$op || !in_array($op, $this->operators)) continue;
 
             if ($op == 'in' || $op == '!in')
             {
@@ -132,14 +136,23 @@ class Query {
 
     }
 
-    public function parseOrderBy($field, $derection)
+    /**
+     * parse 
+     */
+    public function parseFunctionOrderBy($statement)
     {
-        if (!isset($this->statement['orderBy']))
-        {
-            $this->statement['orderBy'] = [];
-        }
 
-        array_push($this->statement['orderBy'], [$field, $derection]);
+    	collect(explode(',', $statement))->each(function($one)
+    	{
+    		list($field, $direction) = explode(':', $one);
+
+    		if (!isset($this->statement['orderBy']))
+	        {
+	            $this->statement['orderBy'] = [];
+	        }
+
+        	array_push($this->statement['orderBy'], [$field, $direction]);
+    	});
     }
 
 
@@ -202,5 +215,24 @@ class Query {
         }
 
         return $op;
+    }
+
+    /**
+     * parse where sub statement.
+     * 
+     * @return array [op, value]
+     */
+    protected function parseWhereStatement($statement)
+    {
+
+    	if ($p = strpos($statement, ':'))
+    	{
+    		return [
+    			substr($statement, 0, $p),
+    			substr($statement, $p + 1)
+    		];
+    	}
+
+    	return [null, $statement];
     }
 }
