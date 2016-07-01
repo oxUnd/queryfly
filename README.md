@@ -111,6 +111,18 @@ class Controler extends BaseController
 }
 ```
 
+And route
+
+```php
+<?php
+
+...
+
+Route::get('/api/article/foos/query', 'Controller@query');
+
+...
+```
+
 now only `bindToModel`.
 
 ## document
