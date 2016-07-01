@@ -15,8 +15,18 @@ class Request
 
     protected $method = 'GET';
 
+    /**
+     * RAL service name
+     *
+     * @var string
+     */
     protected $service;
 
+    /**
+     * if POST, it's POST data
+     *
+     * @var array
+     */
     protected $data;
 
     public function __construct($method, $url, $data = array(), $service = '')
@@ -51,7 +61,7 @@ class Request
             if (is_string($result))
             {
                 $result = json_decode($result, true);
-                if (is_null($return))
+                if (is_null($result))
                 {
                     $return = $this->buildReturn([], self::STATUS_FAILED, 'json paser failed: ' . json_last_error());
                 }

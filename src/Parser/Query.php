@@ -87,8 +87,7 @@ class Query {
             }
             else
             {
-                list($op, $value) = explode(':', $condition);
-                $this->parseWhere($field, $op, $value);
+                $this->parseWhere($field, $condition);
             }
         }
 
@@ -102,19 +101,20 @@ class Query {
         $this->statement[$function] = $value;
     }
 
-    public function parseWhere($field, $op, $value)
+    public function parseWhere($field, $condition)
     {
-        if (!in_array($op, $this->operators)) return;
+    	if (! is_array($condition))
+    	{
+    		$condition = [$condition];
+    	}
 
-        $values = $value;
-        
-        if (! is_array($value))
-        {
-            $values = [$value];
-        }
 
-        foreach ($values as $value)
+        foreach ($condition as $one)
         {
+        	list($op, $value) = explode(':', $one);
+
+        	if (!in_array($op, $this->operators)) continue;
+
             if ($op == 'in' || $op == '!in')
             {
                 $value = explode(',', $value);
