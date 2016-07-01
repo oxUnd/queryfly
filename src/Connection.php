@@ -69,7 +69,7 @@ class Connection extends BaseConnection
             return $result['data'];
         }
 
-        throw new Exception($result['error_message']);
+        throw new RequestException($url, $result['error_message']);
     }
 
     /**
@@ -89,7 +89,7 @@ class Connection extends BaseConnection
             return $result['data'];
         }
 
-        throw new Exception($result['error_message']);
+        throw new RequestException($url, $result['error_message']);
     }
 
     /**
