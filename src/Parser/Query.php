@@ -73,7 +73,7 @@ class Query {
 
                 if ($field === 'orderby')
                 {
-                	$this->parseFunctionOrderBy($statement);
+                    $this->parseFunctionOrderBy($statement);
                 }
                 else if ($field === 'field')
                 {
@@ -108,16 +108,16 @@ class Query {
      */
     public function parseWhere($field, $statement)
     {
-    	if (! is_array($statement))
-    	{
-    		$statement = [$statement];
-    	}
+        if (! is_array($statement))
+        {
+            $statement = [$statement];
+        }
 
         foreach ($statement as $one)
         {
-        	list($op, $value) = $this->parseWhereStatement($one);
+            list($op, $value) = $this->parseWhereStatement($one);
 
-        	if (!$op || !in_array($op, $this->operators)) continue;
+            if (!$op || !in_array($op, $this->operators)) continue;
 
             if ($op == 'in' || $op == '!in')
             {
@@ -142,17 +142,17 @@ class Query {
     public function parseFunctionOrderBy($statement)
     {
 
-    	collect(explode(',', $statement))->each(function($one)
-    	{
-    		list($field, $direction) = explode(':', $one);
+        collect(explode(',', $statement))->each(function($one)
+        {
+            list($field, $direction) = explode(':', $one);
 
-    		if (!isset($this->statement['orderBy']))
-	        {
-	            $this->statement['orderBy'] = [];
-	        }
+            if (!isset($this->statement['orderBy']))
+            {
+                $this->statement['orderBy'] = [];
+            }
 
-        	array_push($this->statement['orderBy'], [$field, $direction]);
-    	});
+            array_push($this->statement['orderBy'], [$field, $direction]);
+        });
     }
 
 
@@ -225,14 +225,14 @@ class Query {
     protected function parseWhereStatement($statement)
     {
 
-    	if ($p = strpos($statement, ':'))
-    	{
-    		return [
-    			substr($statement, 0, $p),
-    			substr($statement, $p + 1)
-    		];
-    	}
+        if ($p = strpos($statement, ':'))
+        {
+            return [
+                substr($statement, 0, $p),
+                substr($statement, $p + 1)
+            ];
+        }
 
-    	return [null, $statement];
+        return [null, $statement];
     }
 }
