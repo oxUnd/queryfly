@@ -58,7 +58,7 @@ it's `connect` config to `ROOT/config/database.php`
 now you can use it.
 
 ```php
-$all = Foo::where('name', 'like', 'foo')->get(['id,name']);
+$all = Foo::where('name', 'like', 'foo')->get(['id', 'name']);
 ```
 
 will request resource from [server](#server), request url
