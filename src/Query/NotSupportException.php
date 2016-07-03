@@ -6,7 +6,7 @@ use Throwable;
  * if statement or clauses not support, throw QueryNotSupportException.
  *
  */
-class QueryNotSupportException extends Exception
+class NotSupportException extends Exception
 {
     protected $messageFormat = 'Not support: %s';
 
