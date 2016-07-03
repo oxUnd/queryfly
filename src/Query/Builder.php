@@ -478,6 +478,7 @@ class Builder extends BaseBuilder
      */
     public function raw($expression = null)
     {
+        return new QueryNotSupportException('database expression, such as DB::raw');
     }
 
     /**
