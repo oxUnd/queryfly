@@ -3,6 +3,7 @@
 
 use Exception;
 use Closure;
+use Schema;
 
 /**
  * A queryfly query string parser
@@ -11,6 +12,8 @@ use Closure;
  * @author xiangshouding
  */
 class Query {
+
+    protected $request = null;
 
     protected $operators = [];
 
@@ -137,7 +140,7 @@ class Query {
     }
 
     /**
-     * parse 
+     * parse function
      */
     public function parseFunctionOrderBy($statement)
     {
@@ -153,6 +156,19 @@ class Query {
 
             array_push($this->statement['orderBy'], [$field, $direction]);
         });
+    }
+
+    /**
+     * bind Request to this.
+     * 
+     * @param Request $request
+     * @return object this
+     */
+    public function bindRequest($reqeust)
+    {
+        $this->request = $request;
+
+        return $this;
     }
 
 
@@ -184,7 +200,7 @@ class Query {
 
         if ($callback)
         {
-            return $callback($this->getSelect(), $model);           
+            return $callback($this->getSelect($this->validateAttributeByModel($model->getTable())), $model);           
         }
 
         return $model;
@@ -193,11 +209,45 @@ class Query {
     /**
      * Get need field.
      * 
+     * @param Closure $validateFn if bindToModel need attribute judge.
      * @return array
      */
-    public function getSelect()
+    public function getSelect(Closure $validateFn = null)
     {
-        return isset($this->statement['get']) ? $this->statement['get'] : ['*'];
+        if (! isset($this->statement['get'])) return ['*'];
+
+        $select = $this->statement['get'];
+
+        if ($validateFn) {
+            $select = $validateFn($this->statement['get']);
+        }
+
+        return $select;
+    }
+
+    /**
+     * validate user's need column
+     * 
+     * @param string $table
+     * @return Closure
+     */
+    protected function validateAttributeByModel($table)
+    { 
+        return function ($select) use ($table)
+        {
+            if ($select == ['*']) return $select;
+
+            $columns = Schema::getColumnListing($table);
+
+            $validColumns = array_diff($columns, $select);
+
+            if (empty($validColumns))
+            {
+                return $select;
+            }
+
+            throw new InvalidArgumentsException("the table {$table} no fields: " . implode(',', $select));
+        };
     }
 
     /**
