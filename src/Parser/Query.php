@@ -195,12 +195,18 @@ class Query {
                     (array) $args
                 );
             }
-
         }
 
         if ($callback)
         {
-            return $callback($this->getSelect($this->validateAttributeByModel($model->getTable())), $model);           
+            return $callback(
+                $this->getSelect(
+                    $this->validateAttributeByModel(
+                        $model->getTable()
+                    )
+                ),
+                $model
+            );           
         }
 
         return $model;
@@ -218,7 +224,8 @@ class Query {
 
         $select = $this->statement['get'];
 
-        if ($validateFn) {
+        if ($validateFn)
+        {
             $select = $validateFn($this->statement['get']);
         }
 
