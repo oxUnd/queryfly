@@ -202,7 +202,7 @@ class Query {
             return $callback(
                 $this->getSelect(
                     $this->validateAttributeByModel(
-                        $model->getTable()
+                        $model->getModel()->getTable()
                     )
                 ),
                 $model
@@ -245,15 +245,15 @@ class Query {
             if ($select == ['*']) return $select;
 
             $columns = Schema::getColumnListing($table);
-
-            $validColumns = array_diff($columns, $select);
+            
+            $validColumns = array_diff($select, $columns);
 
             if (empty($validColumns))
             {
                 return $select;
             }
 
-            throw new InvalidArgumentsException("the table {$table} no fields: " . implode(',', $select));
+            throw new InvalidArgumentException("the table {$table} no fields: " . implode(',', $validColumns));
         };
     }
 
