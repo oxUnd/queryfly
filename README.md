@@ -20,6 +20,18 @@ your `composer.json`, then run `composer update`
 
 ## how to use
 
+### register
+
+```php
+<?php
+...
+
+$app->register('Epsilon\Queryfly\QueryflyServiceProvider');
+
+$app->withEloquent();
+...
+```
+
 ### client
 
 create a Model, it extends `Epsilon\Queryfly\Eloquent\Model`
