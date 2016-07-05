@@ -22,12 +22,12 @@ your `composer.json`, then run `composer update`
 
 ### client
 
-create a Model, it extends `Epsilon\Queryfly\Eloquant\Model`
+create a Model, it extends `Epsilon\Queryfly\Eloquent\Model`
 
 ```php
 <?php namespace App/Foo;
 
-use Epsilon\Queryfly\Eloquant\Model;
+use Epsilon\Queryfly\Eloquent\Model;
 
 class Foo extends Model
 {
